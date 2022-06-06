@@ -9,7 +9,8 @@ import numpy as np
 from datetime import datetime
 from itertools import takewhile, islice, dropwhile
 from numpy import linalg as LA
-
+import matplotlib.animation as animation
+from celluloid import Camera
 pd.set_option('display.max_columns', None)
 
 
@@ -247,8 +248,7 @@ def Calc_Azimuth_Elevation(Pos_Rcv,Pos_SV):
 
 ##import GALILEO almanach data
 sat_data = read_xml('2022-05-17.xml')
-#start time
-[gps_week, sec_of_week] = ymdhms2gps(2022,5,17,6,0,0)
+
 
 ##BUTE coordinates
 lat =np.radians(47.5)
@@ -260,15 +260,36 @@ xsta = GPS2ECEF(lat,lon,alt);
 xsat = []
 cutoff = 10 #Elevation cutoff
 nsat = 0;
+orientation = [];
+zenit = [];
+[gps_week, sec_of_week] = ymdhms2gps(2022,5,17,19,0,0)
 for i in range(0,len(sat_data)):
     a = satpos(gps_week, sec_of_week, sat_data.iloc[i]['ID'], sat_data.iloc[i]['statusE5a'], sat_data.iloc[i]['ecc'], sat_data.iloc[i]['ax'], sat_data.iloc[i]['omega0'],\
-        sat_data.iloc[i]['w'], sat_data.iloc[i]['m0'], sat_data.iloc[i]['t0a'], sat_data.iloc[i]['deltai'], sat_data.iloc[i]['omegadot'], sat_data.iloc[i]['wna'])
+                sat_data.iloc[i]['w'], sat_data.iloc[i]['m0'], sat_data.iloc[i]['t0a'], sat_data.iloc[i]['deltai'], sat_data.iloc[i]['omegadot'], sat_data.iloc[i]['wna'])
     xsat.append(a)
     AE = Calc_Azimuth_Elevation(xsta,xsat[i])
+    zenit = (np.pi/2)-AE[1]
     if AE[0]>cutoff:
-        print('{0:.0f}'.format(sat_data.iloc[i]['ID']),AE)
+        #print('{0:.0f}'.format(sat_data.iloc[i]['ID']),AE)
         nsat +=1;
+        ##Plot
+        ax = plt.subplot(1, 1, 1, projection='polar')
+        ax.grid(True)
+        ax.set_theta_zero_location('N')
+        ax.set_theta_direction(-1)
+        ax.set_yticks(range(0, 90, 10))                   # Define the yticks
+        yLabel = ['90', '', '', '60', '', '', '30', '', '']
+        ax.set_yticklabels(yLabel)
+        ax.plot(np.radians(AE[1]),np.degrees((np.pi/2)-np.radians(AE[0])), 'bo')
+        ax.text(np.radians(AE[1]),np.degrees((np.pi/2)-np.radians(AE[0])),'E' + '{0:.0f}'.format(sat_data.iloc[i]['ID']),
+                horizontalalignment='center',
+                verticalalignment='bottom')
+plt.show()
+        
 print('Number of visible satellites at the mentioned moment:', nsat)
+
+
+
 
 
 
